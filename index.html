@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Challenge the AI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --border: #222;
+    --x-color: #ff3b3b;
+    --o-color: #00e5ff;
+    --neutral: #444;
+    --text: #f0f0f0;
+    --dim: #555;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 20px 60px;
+    overflow-y: auto;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--x-color), var(--o-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  /* Side picker */
+  .side-picker {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .side-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    padding: 10px 32px;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    color: var(--dim);
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .side-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .side-btn.x-btn:hover, .side-btn.x-btn.active {
+    color: var(--x-color);
+    border-color: var(--x-color);
+    box-shadow: 0 0 20px rgba(255,59,59,0.3), inset 0 0 20px rgba(255,59,59,0.05);
+  }
+
+  .side-btn.o-btn:hover, .side-btn.o-btn.active {
+    color: var(--o-color);
+    border-color: var(--o-color);
+    box-shadow: 0 0 20px rgba(0,229,255,0.3), inset 0 0 20px rgba(0,229,255,0.05);
+  }
+
+  /* Status bar */
+  .status {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    min-height: 1.2em;
+    color: var(--text);
+    transition: color 0.3s;
+  }
+
+  .status.thinking { color: var(--o-color); animation: pulse 1s infinite; }
+  .status.win-x { color: var(--x-color); }
+  .status.win-o { color: var(--o-color); }
+  .status.draw { color: var(--dim); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Board */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    background: var(--border);
+    border: 3px solid var(--border);
+    position: relative;
+  }
+
+  .cell {
+    width: clamp(80px, 22vw, 120px);
+    height: clamp(80px, 22vw, 120px);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 7vw, 4rem);
+    transition: background 0.1s;
+    position: relative;
+    user-select: none;
+  }
+
+  .cell:hover:not(.filled):not(.disabled) {
+    background: #1a1a1a;
+  }
+
+  .cell.filled { cursor: default; }
+  .cell.disabled { cursor: not-allowed; }
+
+  .cell .mark {
+    opacity: 0;
+    transform: scale(0.3) rotate(-15deg);
+    transition: opacity 0.2s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .cell .mark.show {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  .cell .mark.x { color: var(--x-color); }
+  .cell .mark.o { color: var(--o-color); }
+
+  /* Win highlight */
+  .cell.winning {
+    background: #1a1a1a;
+  }
+  .cell.winning .mark {
+    text-shadow: 0 0 30px currentColor;
+  }
+
+  /* Hover preview */
+  .cell:hover:not(.filled):not(.disabled)::after {
+    content: attr(data-preview);
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 7vw, 4rem);
+    opacity: 0.15;
+  }
+  .cell[data-side="X"]:hover:not(.filled):not(.disabled)::after { color: var(--x-color); }
+  .cell[data-side="O"]:hover:not(.filled):not(.disabled)::after { color: var(--o-color); }
+
+  /* Scoreboard */
+  .score-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 28px;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .score-item { text-align: center; }
+  .score-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-top: 2px;
+  }
+  .score-val.x { color: var(--x-color); }
+  .score-val.o { color: var(--o-color); }
+  .score-val.d { color: var(--dim); }
+
+  /* Reset button */
+  .reset-btn {
+    margin-top: 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 10px 28px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+
+  .label-row {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .you { color: var(--x-color); }
+  .ai  { color: var(--o-color); }
+</style>
+</head>
+<body>
+
+<h1>Minimax</h1>
+<p class="subtitle">Tic-Tac-Toe &mdash; Can you beat the AI?</p>
+
+<div class="label-row">Choose your side:</div>
+<div class="side-picker">
+  <button class="side-btn x-btn active" onclick="chooseSide('X')">X — Go First</button>
+  <button class="side-btn o-btn" onclick="chooseSide('O')">O — Go Second</button>
+</div>
+
+<div class="status" id="status">Your turn</div>
+
+<div class="board" id="board">
+  <!-- 9 cells -->
+</div>
+
+<div class="score-row">
+  <div class="score-item">
+    <span>You</span>
+    <span class="score-val x" id="score-human">0</span>
+  </div>
+  <div class="score-item">
+    <span>Draw</span>
+    <span class="score-val d" id="score-draw">0</span>
+  </div>
+  <div class="score-item">
+    <span>AI</span>
+    <span class="score-val o" id="score-ai">0</span>
+  </div>
+</div>
+
+<button class="reset-btn" onclick="resetGame()">[ New Game ]</button>
+
+<script>
+// ─── Minimax Logic (ported from Python) ───────────────────────────────────────
+const X = 'X', O = 'O', EMPTY = null;
+
+function initialState() {
+  return [[EMPTY,EMPTY,EMPTY],[EMPTY,EMPTY,EMPTY],[EMPTY,EMPTY,EMPTY]];
+}
+
+function playerTurn(board) {
+  let xc = 0, oc = 0;
+  for (const row of board) for (const c of row) { if (c===X) xc++; if (c===O) oc++; }
+  return xc === oc ? X : O;
+}
+
+function actions(board) {
+  const moves = [];
+  for (let i=0;i<3;i++) for (let j=0;j<3;j++) if (board[i][j]===EMPTY) moves.push([i,j]);
+  return moves;
+}
+
+function result(board, action) {
+  const [i,j] = action;
+  const nb = board.map(r => [...r]);
+  nb[i][j] = playerTurn(board);
+  return nb;
+}
+
+function winner(board) {
+  const lines = [
+    [board[0][0],board[0][1],board[0][2]],
+    [board[1][0],board[1][1],board[1][2]],
+    [board[2][0],board[2][1],board[2][2]],
+    [board[0][0],board[1][0],board[2][0]],
+    [board[0][1],board[1][1],board[2][1]],
+    [board[0][2],board[1][2],board[2][2]],
+    [board[0][0],board[1][1],board[2][2]],
+    [board[0][2],board[1][1],board[2][0]],
+  ];
+  for (const l of lines) if (l[0]!==EMPTY && l[0]===l[1] && l[1]===l[2]) return l[0];
+  return null;
+}
+
+function terminal(board) {
+  return winner(board) !== null || actions(board).length === 0;
+}
+
+function utility(board) {
+  const w = winner(board);
+  return w===X ? 1 : w===O ? -1 : 0;
+}
+
+function minimax(board) {
+  if (terminal(board)) return null;
+  const cur = playerTurn(board);
+
+  function maxVal(board, alpha, beta) {
+    if (terminal(board)) return utility(board);
+    let v = -Infinity;
+    for (const a of actions(board)) {
+      v = Math.max(v, minVal(result(board, a), alpha, beta));
+      alpha = Math.max(alpha, v);
+      if (alpha >= beta) break;
+    }
+    return v;
+  }
+
+  function minVal(board, alpha, beta) {
+    if (terminal(board)) return utility(board);
+    let v = Infinity;
+    for (const a of actions(board)) {
+      v = Math.min(v, maxVal(result(board, a), alpha, beta));
+      beta = Math.min(beta, v);
+      if (beta <= alpha) break;
+    }
+    return v;
+  }
+
+  let bestAction = null;
+  if (cur === X) {
+    let best = -Infinity;
+    for (const a of actions(board)) {
+      const val = minVal(result(board, a), -Infinity, Infinity);
+      if (val > best) { best = val; bestAction = a; }
+    }
+  } else {
+    let best = Infinity;
+    for (const a of actions(board)) {
+      const val = maxVal(result(board, a), -Infinity, Infinity);
+      if (val < best) { best = val; bestAction = a; }
+    }
+  }
+  return bestAction;
+}
+
+function winningCells(board) {
+  const patterns = [
+    [[0,0],[0,1],[0,2]], [[1,0],[1,1],[1,2]], [[2,0],[2,1],[2,2]],
+    [[0,0],[1,0],[2,0]], [[0,1],[1,1],[2,1]], [[0,2],[1,2],[2,2]],
+    [[0,0],[1,1],[2,2]], [[0,2],[1,1],[2,0]],
+  ];
+  for (const pat of patterns) {
+    const vals = pat.map(([i,j]) => board[i][j]);
+    if (vals[0]!==EMPTY && vals[0]===vals[1] && vals[1]===vals[2]) return pat;
+  }
+  return [];
+}
+
+// ─── Game State ───────────────────────────────────────────────────────────────
+let board = initialState();
+let humanSide = X;
+let aiSide = O;
+let gameOver = false;
+let scores = { human: 0, ai: 0, draw: 0 };
+
+function chooseSide(side) {
+  humanSide = side;
+  aiSide = side === X ? O : X;
+  document.querySelector('.x-btn').classList.toggle('active', side === X);
+  document.querySelector('.o-btn').classList.toggle('active', side === O);
+  resetGame();
+}
+
+function resetGame() {
+  board = initialState();
+  gameOver = false;
+  renderBoard();
+  setStatus('your-turn');
+  // If AI goes first
+  if (playerTurn(board) === aiSide) {
+    setStatus('thinking');
+    setTimeout(doAiMove, 400);
+  }
+}
+
+function setStatus(type, extra) {
+  const el = document.getElementById('status');
+  el.className = 'status';
+  const msgs = {
+    'your-turn': `Your turn  —  You are ${humanSide}`,
+    'thinking': 'AI is thinking...',
+    'win-human': `You win! — Nice try, but that shouldn't happen 😅`,
+    'win-ai': `AI wins — The AI played perfectly`,
+    'draw': `Draw — You held it off!`,
+  };
+  el.textContent = msgs[type] || '';
+  if (type === 'thinking') el.classList.add('thinking');
+  if (type === 'win-human') el.classList.add('win-x');
+  if (type === 'win-ai') el.classList.add('win-o');
+  if (type === 'draw') el.classList.add('draw');
+}
+
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  const wCells = winningCells(board).map(([i,j]) => i*3+j);
+
+  for (let i=0;i<3;i++) {
+    for (let j=0;j<3;j++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const idx = i*3+j;
+      const val = board[i][j];
+
+      if (val) {
+        cell.classList.add('filled');
+        if (wCells.includes(idx)) cell.classList.add('winning');
+        const mark = document.createElement('span');
+        mark.className = `mark ${val.toLowerCase()}`;
+        mark.textContent = val;
+        cell.appendChild(mark);
+        setTimeout(() => mark.classList.add('show'), 10);
+      } else {
+        if (gameOver || playerTurn(board) === aiSide) {
+          cell.classList.add('disabled');
+        } else {
+          cell.dataset.preview = humanSide;
+          cell.dataset.side = humanSide;
+          cell.onclick = () => humanMove(i, j);
+        }
+      }
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+function humanMove(i, j) {
+  if (gameOver || board[i][j] !== EMPTY || playerTurn(board) !== humanSide) return;
+  board = result(board, [i, j]);
+  renderBoard();
+  checkEnd();
+  if (!gameOver) {
+    setStatus('thinking');
+    setTimeout(doAiMove, 350);
+  }
+}
+
+function doAiMove() {
+  const move = minimax(board);
+  if (move) {
+    board = result(board, move);
+    renderBoard();
+  }
+  checkEnd();
+  if (!gameOver) setStatus('your-turn');
+}
+
+function checkEnd() {
+  const w = winner(board);
+  if (w) {
+    gameOver = true;
+    renderBoard();
+    if (w === humanSide) {
+      scores.human++;
+      setStatus('win-human');
+    } else {
+      scores.ai++;
+      setStatus('win-ai');
+    }
+  } else if (terminal(board)) {
+    gameOver = true;
+    scores.draw++;
+    setStatus('draw');
+  }
+  document.getElementById('score-human').textContent = scores.human;
+  document.getElementById('score-ai').textContent = scores.ai;
+  document.getElementById('score-draw').textContent = scores.draw;
+}
+
+// Init
+renderBoard();
+setStatus('your-turn');
+</script>
+</body>
+</html>
