@@ -13,9 +13,12 @@
     --border: #222;
     --x-color: #ff3b3b;
     --o-color: #00e5ff;
-    --neutral: #444;
     --text: #f0f0f0;
     --dim: #555;
+    --easy-color: #22c55e;
+    --medium-color: #f59e0b;
+    --hard-color: #ef4444;
+    --perfect-color: #a855f7;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,7 +36,6 @@
     overflow-y: auto;
   }
 
-  /* Subtle grid background */
   body::before {
     content: '';
     position: fixed;
@@ -61,14 +63,84 @@
     color: var(--dim);
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
 
-  /* Side picker */
+  .section-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .difficulty-picker {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .diff-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    padding: 7px 18px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    color: var(--dim);
+    transition: all 0.15s;
+  }
+
+  .diff-btn[data-diff="easy"]:hover,
+  .diff-btn[data-diff="easy"].active {
+    color: var(--easy-color); border-color: var(--easy-color);
+    box-shadow: 0 0 14px rgba(34,197,94,0.25);
+  }
+  .diff-btn[data-diff="medium"]:hover,
+  .diff-btn[data-diff="medium"].active {
+    color: var(--medium-color); border-color: var(--medium-color);
+    box-shadow: 0 0 14px rgba(245,158,11,0.25);
+  }
+  .diff-btn[data-diff="hard"]:hover,
+  .diff-btn[data-diff="hard"].active {
+    color: var(--hard-color); border-color: var(--hard-color);
+    box-shadow: 0 0 14px rgba(239,68,68,0.25);
+  }
+  .diff-btn[data-diff="perfect"]:hover,
+  .diff-btn[data-diff="perfect"].active {
+    color: var(--perfect-color); border-color: var(--perfect-color);
+    box-shadow: 0 0 14px rgba(168,85,247,0.25);
+  }
+
+  .depth-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: var(--dim);
+  }
+
+  .depth-pips { display: flex; gap: 4px; }
+
+  .pip {
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .pip.active-easy    { background: var(--easy-color);    border-color: var(--easy-color); }
+  .pip.active-medium  { background: var(--medium-color);  border-color: var(--medium-color); }
+  .pip.active-hard    { background: var(--hard-color);    border-color: var(--hard-color); }
+  .pip.active-perfect { background: var(--perfect-color); border-color: var(--perfect-color); }
+
   .side-picker {
     display: flex;
     gap: 12px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
   .side-btn {
@@ -81,31 +153,16 @@
     cursor: pointer;
     color: var(--dim);
     transition: all 0.15s;
-    position: relative;
-    overflow: hidden;
   }
-
-  .side-btn::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
   .side-btn.x-btn:hover, .side-btn.x-btn.active {
-    color: var(--x-color);
-    border-color: var(--x-color);
+    color: var(--x-color); border-color: var(--x-color);
     box-shadow: 0 0 20px rgba(255,59,59,0.3), inset 0 0 20px rgba(255,59,59,0.05);
   }
-
   .side-btn.o-btn:hover, .side-btn.o-btn.active {
-    color: var(--o-color);
-    border-color: var(--o-color);
+    color: var(--o-color); border-color: var(--o-color);
     box-shadow: 0 0 20px rgba(0,229,255,0.3), inset 0 0 20px rgba(0,229,255,0.05);
   }
 
-  /* Status bar */
   .status {
     font-size: 0.75rem;
     letter-spacing: 0.15em;
@@ -114,26 +171,24 @@
     min-height: 1.2em;
     color: var(--text);
     transition: color 0.3s;
+    text-align: center;
   }
-
   .status.thinking { color: var(--o-color); animation: pulse 1s infinite; }
-  .status.win-x { color: var(--x-color); }
-  .status.win-o { color: var(--o-color); }
-  .status.draw { color: var(--dim); }
+  .status.win-x    { color: var(--x-color); }
+  .status.win-o    { color: var(--o-color); }
+  .status.draw     { color: var(--dim); }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    50%       { opacity: 0.4; }
   }
 
-  /* Board */
   .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 3px;
     background: var(--border);
     border: 3px solid var(--border);
-    position: relative;
   }
 
   .cell {
@@ -150,12 +205,8 @@
     position: relative;
     user-select: none;
   }
-
-  .cell:hover:not(.filled):not(.disabled) {
-    background: #1a1a1a;
-  }
-
-  .cell.filled { cursor: default; }
+  .cell:hover:not(.filled):not(.disabled) { background: #1a1a1a; }
+  .cell.filled   { cursor: default; }
   .cell.disabled { cursor: not-allowed; }
 
   .cell .mark {
@@ -163,24 +214,13 @@
     transform: scale(0.3) rotate(-15deg);
     transition: opacity 0.2s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-
-  .cell .mark.show {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-
+  .cell .mark.show { opacity: 1; transform: scale(1) rotate(0deg); }
   .cell .mark.x { color: var(--x-color); }
   .cell .mark.o { color: var(--o-color); }
 
-  /* Win highlight */
-  .cell.winning {
-    background: #1a1a1a;
-  }
-  .cell.winning .mark {
-    text-shadow: 0 0 30px currentColor;
-  }
+  .cell.winning { background: #1a1a1a; }
+  .cell.winning .mark { text-shadow: 0 0 30px currentColor; }
 
-  /* Hover preview */
   .cell:hover:not(.filled):not(.disabled)::after {
     content: attr(data-preview);
     position: absolute;
@@ -191,7 +231,6 @@
   .cell[data-side="X"]:hover:not(.filled):not(.disabled)::after { color: var(--x-color); }
   .cell[data-side="O"]:hover:not(.filled):not(.disabled)::after { color: var(--o-color); }
 
-  /* Scoreboard */
   .score-row {
     display: flex;
     gap: 32px;
@@ -201,7 +240,6 @@
     text-transform: uppercase;
     color: var(--dim);
   }
-
   .score-item { text-align: center; }
   .score-val {
     font-family: 'Bebas Neue', sans-serif;
@@ -214,7 +252,6 @@
   .score-val.o { color: var(--o-color); }
   .score-val.d { color: var(--dim); }
 
-  /* Reset button */
   .reset-btn {
     margin-top: 24px;
     font-family: 'IBM Plex Mono', monospace;
@@ -228,21 +265,17 @@
     cursor: pointer;
     transition: all 0.15s;
   }
+  .reset-btn:hover { border-color: var(--text); color: var(--text); }
 
-  .reset-btn:hover {
-    border-color: var(--text);
-    color: var(--text);
-  }
-
-  .label-row {
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
+  .nodes-info {
+    margin-top: 12px;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
     color: var(--dim);
-    margin-bottom: 6px;
     text-align: center;
+    min-height: 1em;
   }
-  .you { color: var(--x-color); }
-  .ai  { color: var(--o-color); }
+  .nodes-info span { color: var(--text); }
 </style>
 </head>
 <body>
@@ -250,17 +283,28 @@
 <h1>Minimax</h1>
 <p class="subtitle">Tic-Tac-Toe &mdash; Can you beat the AI?</p>
 
-<div class="label-row">Choose your side:</div>
+<div class="section-label">Difficulty</div>
+<div class="difficulty-picker">
+  <button class="diff-btn" data-diff="easy"    onclick="setDifficulty('easy')">Easy</button>
+  <button class="diff-btn active" data-diff="medium"  onclick="setDifficulty('medium')">Medium</button>
+  <button class="diff-btn" data-diff="hard"    onclick="setDifficulty('hard')">Hard</button>
+  <button class="diff-btn" data-diff="perfect" onclick="setDifficulty('perfect')">Perfect</button>
+</div>
+
+<div class="depth-bar-wrap">
+  <span>Search depth</span>
+  <div class="depth-pips" id="pips"></div>
+  <span id="depth-label">3 / 9</span>
+</div>
+
+<div class="section-label">Your side</div>
 <div class="side-picker">
-  <button class="side-btn x-btn active" onclick="chooseSide('X')">X — Go First</button>
-  <button class="side-btn o-btn" onclick="chooseSide('O')">O — Go Second</button>
+  <button class="side-btn x-btn active" onclick="chooseSide('X')">X &mdash; First</button>
+  <button class="side-btn o-btn"        onclick="chooseSide('O')">O &mdash; Second</button>
 </div>
 
 <div class="status" id="status">Your turn</div>
-
-<div class="board" id="board">
-  <!-- 9 cells -->
-</div>
+<div class="board"  id="board"></div>
 
 <div class="score-row">
   <div class="score-item">
@@ -278,10 +322,46 @@
 </div>
 
 <button class="reset-btn" onclick="resetGame()">[ New Game ]</button>
+<div class="nodes-info" id="nodes-info"></div>
 
 <script>
-// ─── Minimax Logic (ported from Python) ───────────────────────────────────────
 const X = 'X', O = 'O', EMPTY = null;
+
+const DIFFICULTY = {
+  easy:    { depth: 1, label: 'Easy' },
+  medium:  { depth: 3, label: 'Medium' },
+  hard:    { depth: 5, label: 'Hard' },
+  perfect: { depth: 9, label: 'Perfect' },
+};
+
+let currentDiff = 'medium';
+let nodesExplored = 0;
+
+function heuristic(board) {
+  let score = 0;
+  const lines = [
+    [board[0][0],board[0][1],board[0][2]],
+    [board[1][0],board[1][1],board[1][2]],
+    [board[2][0],board[2][1],board[2][2]],
+    [board[0][0],board[1][0],board[2][0]],
+    [board[0][1],board[1][1],board[2][1]],
+    [board[0][2],board[1][2],board[2][2]],
+    [board[0][0],board[1][1],board[2][2]],
+    [board[0][2],board[1][1],board[2][0]],
+  ];
+  for (const line of lines) {
+    const xc = line.filter(c => c === X).length;
+    const oc = line.filter(c => c === O).length;
+    if (xc > 0 && oc > 0) continue;
+    if (xc === 2) score += 0.3;
+    if (xc === 1) score += 0.1;
+    if (oc === 2) score -= 0.3;
+    if (oc === 1) score -= 0.1;
+  }
+  if (board[1][1] === X) score += 0.2;
+  if (board[1][1] === O) score -= 0.2;
+  return Math.max(-1, Math.min(1, score));
+}
 
 function initialState() {
   return [[EMPTY,EMPTY,EMPTY],[EMPTY,EMPTY,EMPTY],[EMPTY,EMPTY,EMPTY]];
@@ -333,23 +413,29 @@ function utility(board) {
 function minimax(board) {
   if (terminal(board)) return null;
   const cur = playerTurn(board);
+  const maxDepth = DIFFICULTY[currentDiff].depth;
+  nodesExplored = 0;
 
-  function maxVal(board, alpha, beta) {
+  function maxVal(board, alpha, beta, depth) {
+    nodesExplored++;
     if (terminal(board)) return utility(board);
+    if (depth === 0) return heuristic(board);
     let v = -Infinity;
     for (const a of actions(board)) {
-      v = Math.max(v, minVal(result(board, a), alpha, beta));
+      v = Math.max(v, minVal(result(board, a), alpha, beta, depth - 1));
       alpha = Math.max(alpha, v);
       if (alpha >= beta) break;
     }
     return v;
   }
 
-  function minVal(board, alpha, beta) {
+  function minVal(board, alpha, beta, depth) {
+    nodesExplored++;
     if (terminal(board)) return utility(board);
+    if (depth === 0) return heuristic(board);
     let v = Infinity;
     for (const a of actions(board)) {
-      v = Math.min(v, maxVal(result(board, a), alpha, beta));
+      v = Math.min(v, maxVal(result(board, a), alpha, beta, depth - 1));
       beta = Math.min(beta, v);
       if (beta <= alpha) break;
     }
@@ -360,13 +446,13 @@ function minimax(board) {
   if (cur === X) {
     let best = -Infinity;
     for (const a of actions(board)) {
-      const val = minVal(result(board, a), -Infinity, Infinity);
+      const val = minVal(result(board, a), -Infinity, Infinity, maxDepth);
       if (val > best) { best = val; bestAction = a; }
     }
   } else {
     let best = Infinity;
     for (const a of actions(board)) {
-      const val = maxVal(result(board, a), -Infinity, Infinity);
+      const val = maxVal(result(board, a), -Infinity, Infinity, maxDepth);
       if (val < best) { best = val; bestAction = a; }
     }
   }
@@ -375,9 +461,9 @@ function minimax(board) {
 
 function winningCells(board) {
   const patterns = [
-    [[0,0],[0,1],[0,2]], [[1,0],[1,1],[1,2]], [[2,0],[2,1],[2,2]],
-    [[0,0],[1,0],[2,0]], [[0,1],[1,1],[2,1]], [[0,2],[1,2],[2,2]],
-    [[0,0],[1,1],[2,2]], [[0,2],[1,1],[2,0]],
+    [[0,0],[0,1],[0,2]],[[1,0],[1,1],[1,2]],[[2,0],[2,1],[2,2]],
+    [[0,0],[1,0],[2,0]],[[0,1],[1,1],[2,1]],[[0,2],[1,2],[2,2]],
+    [[0,0],[1,1],[2,2]],[[0,2],[1,1],[2,0]],
   ];
   for (const pat of patterns) {
     const vals = pat.map(([i,j]) => board[i][j]);
@@ -386,12 +472,31 @@ function winningCells(board) {
   return [];
 }
 
-// ─── Game State ───────────────────────────────────────────────────────────────
 let board = initialState();
 let humanSide = X;
 let aiSide = O;
 let gameOver = false;
 let scores = { human: 0, ai: 0, draw: 0 };
+
+function setDifficulty(diff) {
+  currentDiff = diff;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-diff="${diff}"]`).classList.add('active');
+  updateDepthPips();
+  resetGame();
+}
+
+function updateDepthPips() {
+  const depth = DIFFICULTY[currentDiff].depth;
+  const pipsEl = document.getElementById('pips');
+  pipsEl.innerHTML = '';
+  for (let i = 1; i <= 9; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'pip' + (i <= depth ? ` active-${currentDiff}` : '');
+    pipsEl.appendChild(pip);
+  }
+  document.getElementById('depth-label').textContent = `${depth} / 9`;
+}
 
 function chooseSide(side) {
   humanSide = side;
@@ -404,30 +509,31 @@ function chooseSide(side) {
 function resetGame() {
   board = initialState();
   gameOver = false;
+  document.getElementById('nodes-info').innerHTML = '';
   renderBoard();
   setStatus('your-turn');
-  // If AI goes first
   if (playerTurn(board) === aiSide) {
     setStatus('thinking');
     setTimeout(doAiMove, 400);
   }
 }
 
-function setStatus(type, extra) {
+function setStatus(type) {
   const el = document.getElementById('status');
   el.className = 'status';
+  const d = DIFFICULTY[currentDiff];
   const msgs = {
-    'your-turn': `Your turn  —  You are ${humanSide}`,
-    'thinking': 'AI is thinking...',
-    'win-human': `You win! — Nice try, but that shouldn't happen 😅`,
-    'win-ai': `AI wins — The AI played perfectly`,
-    'draw': `Draw — You held it off!`,
+    'your-turn': `Your turn — you are ${humanSide}`,
+    'thinking':  `AI thinking [${d.label} — depth ${d.depth}]...`,
+    'win-human': `You win! The AI slipped up on ${d.label} mode`,
+    'win-ai':    `AI wins — try a lower difficulty`,
+    'draw':      `Draw — well played!`,
   };
   el.textContent = msgs[type] || '';
   if (type === 'thinking') el.classList.add('thinking');
   if (type === 'win-human') el.classList.add('win-x');
-  if (type === 'win-ai') el.classList.add('win-o');
-  if (type === 'draw') el.classList.add('draw');
+  if (type === 'win-ai')   el.classList.add('win-o');
+  if (type === 'draw')     el.classList.add('draw');
 }
 
 function renderBoard() {
@@ -480,6 +586,9 @@ function doAiMove() {
   if (move) {
     board = result(board, move);
     renderBoard();
+    const d = DIFFICULTY[currentDiff];
+    document.getElementById('nodes-info').innerHTML =
+      `Last move: <span>${nodesExplored.toLocaleString()}</span> nodes explored &mdash; depth <span>${d.depth}</span>`;
   }
   checkEnd();
   if (!gameOver) setStatus('your-turn');
@@ -490,24 +599,19 @@ function checkEnd() {
   if (w) {
     gameOver = true;
     renderBoard();
-    if (w === humanSide) {
-      scores.human++;
-      setStatus('win-human');
-    } else {
-      scores.ai++;
-      setStatus('win-ai');
-    }
+    if (w === humanSide) { scores.human++; setStatus('win-human'); }
+    else                 { scores.ai++;    setStatus('win-ai');    }
   } else if (terminal(board)) {
     gameOver = true;
     scores.draw++;
     setStatus('draw');
   }
   document.getElementById('score-human').textContent = scores.human;
-  document.getElementById('score-ai').textContent = scores.ai;
-  document.getElementById('score-draw').textContent = scores.draw;
+  document.getElementById('score-ai').textContent    = scores.ai;
+  document.getElementById('score-draw').textContent  = scores.draw;
 }
 
-// Init
+updateDepthPips();
 renderBoard();
 setStatus('your-turn');
 </script>
