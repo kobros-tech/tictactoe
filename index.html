@@ -327,11 +327,15 @@
 <script>
 const X = 'X', O = 'O', EMPTY = null;
 
+// mistakeChance = probability the AI ignores its calculated best move
+// and plays a uniformly random legal move instead. This is what actually
+// creates a felt difficulty gap in a game as small as tic-tac-toe, since
+// even a 0-ply heuristic search blocks obvious threats.
 const DIFFICULTY = {
-  easy:    { depth: 1, label: 'Easy' },
-  medium:  { depth: 3, label: 'Medium' },
-  hard:    { depth: 5, label: 'Hard' },
-  perfect: { depth: 9, label: 'Perfect' },
+  easy:    { depth: 0, label: 'Easy',    mistakeChance: 1.0 },
+  medium:  { depth: 1, label: 'Medium',  mistakeChance: 0.4 },
+  hard:    { depth: 5, label: 'Hard',    mistakeChance: 0 },
+  perfect: { depth: 9, label: 'Perfect', mistakeChance: 0 },
 };
 
 let currentDiff = 'medium';
@@ -459,6 +463,21 @@ function minimax(board) {
   return bestAction;
 }
 
+// Picks the AI's move for this turn, applying the difficulty's mistake
+// chance on top of the minimax search. This is what actually produces a
+// felt difficulty gap in a game small enough that even shallow search
+// plays competently.
+function chooseAiMove(board) {
+  const { mistakeChance } = DIFFICULTY[currentDiff];
+  const legalMoves = actions(board);
+
+  if (mistakeChance > 0 && Math.random() < mistakeChance) {
+    nodesExplored = 0;
+    return legalMoves[Math.floor(Math.random() * legalMoves.length)];
+  }
+  return minimax(board);
+}
+
 function winningCells(board) {
   const patterns = [
     [[0,0],[0,1],[0,2]],[[1,0],[1,1],[1,2]],[[2,0],[2,1],[2,2]],
@@ -582,13 +601,14 @@ function humanMove(i, j) {
 }
 
 function doAiMove() {
-  const move = minimax(board);
+  const move = chooseAiMove(board);
   if (move) {
     board = result(board, move);
     renderBoard();
     const d = DIFFICULTY[currentDiff];
-    document.getElementById('nodes-info').innerHTML =
-      `Last move: <span>${nodesExplored.toLocaleString()}</span> nodes explored &mdash; depth <span>${d.depth}</span>`;
+    document.getElementById('nodes-info').innerHTML = nodesExplored === 0
+      ? `Last move: <span>random</span> &mdash; ${d.label} mode`
+      : `Last move: <span>${nodesExplored.toLocaleString()}</span> nodes explored &mdash; depth <span>${d.depth}</span>`;
   }
   checkEnd();
   if (!gameOver) setStatus('your-turn');
